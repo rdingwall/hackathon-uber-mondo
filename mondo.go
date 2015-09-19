@@ -45,7 +45,7 @@ type WebhookRequest struct {
 }
 
 type WebhookData struct {
-	Amount      string `json:"amount"`
+	Amount      int32 `json:"amount"`
 	Created     string `json:"created"`
 	Currency    string `json:"currency"`
 	Description string `json:"description"`
