@@ -59,9 +59,14 @@ type UberReceiptResponse struct {
 	DistanceLabel string `json:"miles"`
 }
 
-type UberMapResponse struct {
-	RequestId string `json:"request_id"`
-	Href      string `json:"href"`
+type UberRequestResponse struct {
+	Status   string              `json:"status"`
+	Location UberRequestLocation `json:"location"`
+}
+
+type UberRequestLocation struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 func (c *UberApiClient) GetOAuthToken(authorizationCode, redirectUri string) (*UberTokenResponse, error) {
@@ -104,7 +109,7 @@ func (c *UberApiClient) GetOAuthToken(authorizationCode, redirectUri string) (*U
 
 func (c *UberApiClient) GetHistory(accessToken string) (*UberHistoryResponse, error) {
 	// Hide cancelled & giving transactions for demo...
-	uberHistoryUrl := fmt.Sprintf("%s/v1.2/history?offset=2", c.url)
+	uberHistoryUrl := fmt.Sprintf("%s/v1.2/history?offset=3", c.url)
 	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
 	if err != nil {
 		return nil, err
@@ -167,8 +172,8 @@ func (c *UberApiClient) GetReceipt(accessToken, requestId string) (*UberReceiptR
 	return uberReceiptResponse, nil
 }
 
-func (c *UberApiClient) GetMap(accessToken, requestId string) (*UberMapResponse, error) {
-	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/map", c.url, requestId)
+func (c *UberApiClient) GetRequest(accessToken, requestId string) (*UberRequestResponse, error) {
+	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s", c.url, requestId)
 	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
 	if err != nil {
 		return nil, err
@@ -190,11 +195,11 @@ func (c *UberApiClient) GetMap(accessToken, requestId string) (*UberMapResponse,
 		return nil, errors.New(string(body))
 	}
 
-	uberMapResponse := &UberMapResponse{}
-	err = json.NewDecoder(response.Body).Decode(uberMapResponse)
+	uberRequestResponse := &UberRequestResponse{}
+	err = json.NewDecoder(response.Body).Decode(uberRequestResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return uberMapResponse, nil
+	return uberRequestResponse, nil
 }

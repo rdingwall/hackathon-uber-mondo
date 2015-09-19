@@ -31,6 +31,7 @@ type session struct {
 	uberAccessToken  string
 }
 
+var googleMapsApiKey = flag.String("gMapsApiKey", "", "Google Maps API key (required)")
 var certFile = flag.String("certFile", "cert.pem", "SSL certificate")
 var keyFile = flag.String("keyFile", "key.pem", "SSL certificate")
 var addr = flag.String("addr", ":443", "https list addr")
@@ -177,12 +178,24 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uberMapResponse, err := uberApiClient.GetMap(session.uberAccessToken, requestId)
+	uberRequestResponse, err := uberApiClient.GetRequest(session.uberAccessToken, requestId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("%s get map error: %s", SetAuthCode, err.Error())
+		log.Printf("%s get request error: %s", SetAuthCode, err.Error())
 		return
 	}
+
+	start := coordinate{
+		latitude:  uberHistoryItem.StartCity.Latitude,
+		longitude: uberHistoryItem.StartCity.Longitude,
+	}
+
+	end := coordinate{
+		latitude:  uberRequestResponse.Location.Latitude,
+		longitude: uberRequestResponse.Location.Longitude,
+	}
+
+	feedItemImageUrl := googleMapsUrl(start, end, *googleMapsApiKey)
 
 	// Todo: look up Uber product types
 	feedItemTitle := fmt.Sprintf("%s UberX %s", uberReceiptResponse.TotalCharged, uberHistoryItem.StartCity.DisplayName)
@@ -192,7 +205,7 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 		session.mondoAccountId,
 		"image",
 		"Uber Receipt",
-		uberMapResponse.Href,
+		feedItemImageUrl,
 		feedItemTitle)
 
 	if err != nil {
@@ -215,14 +228,14 @@ func init() {
 
 func main() {
 	flag.Parse()
-	if *uberClientId == "" || *uberClientSecret == "" || *thisUrl == "" {
+	if *uberClientId == "" || *uberClientSecret == "" || *thisUrl == "" || *googleMapsApiKey == "" {
 		flag.PrintDefaults()
 		return
 	}
 	uberApiClient = &UberApiClient{
-		url: *uberApiHost,
+		url:          *uberApiHost,
 		clientSecret: *uberClientSecret,
-		clientId: *uberClientId,
+		clientId:     *uberClientId,
 	}
 
 	mondoApiClient = &MondoApiClient{url: *mondoApiUrl}
