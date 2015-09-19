@@ -37,7 +37,7 @@ var addr = flag.String("addr", ":443", "https list addr")
 var thisUrl = flag.String("url", "", "public url e.g. https://foo (required)")
 var uberClientId = flag.String("uberClientId", "", "Uber client_id (required)")
 var uberClientSecret = flag.String("uberClientSecret", "", "Uber client_secret (required)")
-var uberApiHost = flag.String("uberApi", "https://api.uber.com/v1", "Uber API URL")
+var uberApiHost = flag.String("uberApi", "https://api.uber.com", "Uber API URL (no trailing slash)")
 var mondoApiUrl = flag.String("mondoApi", "https://api.getmondo.co.uk", "Mondo API URL")
 
 var indexTemplate = template.Must(template.ParseFiles("index.html"))
