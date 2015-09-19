@@ -70,7 +70,7 @@ func (c *UberApiClient) GetOAuthToken(authorizationCode, redirectUri string) (*U
 		"client_secret": {c.clientSecret},
 		"client_id":     {c.clientId},
 		"grant_type":    {"authorization_code"},
-		"redirect_uri":  {"http://localhost/uber/setauthcode"},
+		"redirect_uri":  {redirectUri},
 		"code":          {authorizationCode},
 	}
 

@@ -94,8 +94,16 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	redirectUriPath, err := router.Get(SetAuthCode).URLPath()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s error: %s", SetAuthCode, err.Error())
+		return
+	}
+	redirectUri := fmt.Sprintf("%s%s", *thisUrl, redirectUriPath)
+
 	uberAuthorizationCode := r.URL.Query()["code"][0]
-	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode, r.URL.String())
+	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode, redirectUri)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("%s uber oauth token error: %s", SetAuthCode, err.Error())
