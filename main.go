@@ -122,8 +122,8 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s error: %s", SetAuthCode, err.Error())
 		return
 	}
-	log.Printf("%s registering mondo webhook url=%s", SetAuthCode, mondoWebhookPath)
 	mondoWebhookUrl := fmt.Sprintf("%s%s", *thisUrl, mondoWebhookPath)
+	log.Printf("%s registering mondo webhook url=%s", SetAuthCode, mondoWebhookUrl)
 	mondoWebhookResponse, err := mondoApiClient.RegisterWebHook(session.mondoAccessToken, session.mondoAccountId, mondoWebhookUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
