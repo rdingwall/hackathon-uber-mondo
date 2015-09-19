@@ -109,7 +109,7 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uberAuthorizationCode := r.URL.Query()["uberAuthorizationCode"]
+	uberAuthorizationCode := r.URL.Query()["code"]
 	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode[0])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
