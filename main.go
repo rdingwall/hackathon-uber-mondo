@@ -197,14 +197,13 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 
 	feedItemImageUrl := googleMapsUrl(start, end, *googleMapsApiKey)
 
-	// Todo: look up Uber product types
-	feedItemTitle := fmt.Sprintf("%s UberX %s", uberReceiptResponse.TotalCharged, uberHistoryItem.StartCity.DisplayName)
+	feedItemTitle := fmt.Sprintf("%s %s", uberReceiptResponse.TotalCharged, uberHistoryItem.StartCity.DisplayName)
 
 	err = mondoApiClient.CreateFeedItem(
 		session.mondoAccessToken,
 		session.mondoAccountId,
 		"image",
-		"Uber Receipt",
+		"Uber Receipt 🚘",
 		feedItemImageUrl,
 		feedItemTitle)
 
