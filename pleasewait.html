@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Success</title>
+    <title>Please wait...</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.5/cyborg/bootstrap.min.css">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 </head>
 <body>
     <div class="container">
-
         <div class="row" style="margin-top: 100px; text-align: center">
-                <img src="/tick.png" alt="Success" />
-            <h2 style="color: #666666">Success</h2>
+            <h2 style="color: #333333">Please wait...</h2>
         </div>
     </div>
+    <script type="text/javascript">
+        window.location = "{{.UberAuthorizeUrl}}";
+    </script>
 </body>
 </html>

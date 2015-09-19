@@ -2,21 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Uber ❤️ Mondo</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.5/cyborg/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 </head>
 <body>
-    <form action="login" method="post">
-        <div>
-            <label for="mondo-access-token">Mondo Access Token</label>
-            <input id="mondo-access-token" name="mondo-access-token" type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaSI6Im9hdXRoY2xpZW50XzAwMDA5MEN5ekpXNkNLZWZxNngyeWYiLCJleHAiOjE0NDI2OTY2ODMsImlhdCI6MTQ0MjY3NTA4MywianRpIjoidG9rXzAwMDA5MEV0dElKVGVJa3QyNWI5UGQiLCJ1aSI6InVzZXJfMDAwMDh3Q0lyaFlZa3VzUkw2Y1BRMSIsInYiOiIxIn0.djtNOhcUrQP9FzhnSEw1XgBco-ScUfIXvtzDvhjKdI4">
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <img src="header.png" alt="Uber" />
+            </div>
         </div>
-        <div>
-            <label for="mondo-account-id">Mondo Account ID</label>
-            <input id="mondo-account-id" name="mondo-account-id" type="text" value="acc_00008wCIriFoA7TJVEqwpV">
-        </div>
-        <div>
-            <input type="submit" value="Login">
-        </div>
-    </form>
+
+        <form action="login" method="post">
+
+            <div class="row">
+                <div class="col-md-6 col-md-offset-3">
+                    <div class="form-group">
+                        <label for="mondo-access-token">Mondo Access Token</label>
+                        <input id="mondo-access-token" class="form-control" style="font-family: monospace" name="mondo-access-token" type="text" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaSI6Im9hdXRoY2xpZW50XzAwMDA5MEN5ekpXNkNLZWZxNngyeWYiLCJleHAiOjE0NDI3MTk2NjEsImlhdCI6MTQ0MjY5ODA2MSwianRpIjoidG9rXzAwMDA5MEZTNEltM2ZrN3M1Yk8zbmQiLCJ1aSI6InVzZXJfMDAwMDh3Q0lyaFlZa3VzUkw2Y1BRMSIsInYiOiIxIn0.qdefpemTjeWIScyrxDQjtb5XywESzr5r3q9cykWOt78">
+                    </div>
+                    <div class="form-group">
+                        <label for="mondo-account-id">Mondo Account ID</label>
+                        <input id="mondo-account-id" class="form-control" style="font-family: monospace" name="mondo-account-id" type="text" value="acc_00008wCIriFoA7TJVEqwpV">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top: 50px">
+                <div class="col-md-6 col-md-offset-3">
+                    <input type="submit" class="btn btn-lg btn-default btn-block" value="Authorise">
+                </div>
+            </div>
+
+        </form>
+    </div>
 </body>
 </html>

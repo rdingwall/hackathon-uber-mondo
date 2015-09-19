@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "crypto/sha512"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	_ "crypto/sha512"
 )
 
 const (
@@ -41,6 +41,7 @@ var uberApiHost = flag.String("uberApi", "https://api.uber.com/v1", "Uber API UR
 var mondoApiUrl = flag.String("mondoApi", "https://api.getmondo.co.uk", "Mondo API URL")
 
 var indexTemplate = template.Must(template.ParseFiles("index.html"))
+var pleaseWaitTemplate = template.Must(template.ParseFiles("pleasewait.html"))
 var loginSuccessTemplate = template.Must(template.ParseFiles("loginsuccess.html"))
 
 var sessions = make(map[string]*session)
@@ -84,7 +85,7 @@ func loginPost(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	data := struct{ UberAuthorizeUrl string }{UberAuthorizeUrl: uberAuthorizeUrl}
-	loginSuccessTemplate.Execute(w, data)
+	pleaseWaitTemplate.Execute(w, data)
 }
 
 func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +133,9 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 
 	session.mondoWebhookId = mondoWebhookResponse.Webhook.Id
 	log.Printf("%s successfully registered mondo webhook id=%s", SetAuthCode, mondoWebhookResponse.Webhook.Id)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	loginSuccessTemplate.Execute(w, r)
 }
 
 func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
@@ -220,6 +224,7 @@ func main() {
 	router.HandleFunc("/login", loginPost).Methods("POST").Name(Login)
 	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 	log.Printf("Listening on %s\n", *addr)
 	if strings.Contains(*addr, "443") {
 		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
