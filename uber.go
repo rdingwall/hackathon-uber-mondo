@@ -41,7 +41,7 @@ type uberWebhookMeta struct {
 }
 
 func (c *UberApiClient) OAuthAuthorize(sessionId string, redirectUrl string) error {
-	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s", UberAuthHost, *uberClientId, redirectUrl)
+	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&state=%s&redirect_uri=%s", UberAuthHost, *uberClientId, sessionId, redirectUrl)
 	log.Printf("%s requesting %s\n", Login, uberAuthorizeUrl)
 	httpResponse, err := http.Get(uberAuthorizeUrl)
 	if err != nil {

@@ -101,16 +101,15 @@ func loginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	sessionId := vars["sessionId"]
+	sessionId := r.URL.Query()["state"][0]
 	session, exists := sessions[sessionId]
 	if !exists {
 		http.Error(w, fmt.Sprintf("No such session %s", sessionId), http.StatusNotFound)
 		return
 	}
 
-	uberAuthorizationCode := r.URL.Query()["code"]
-	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode[0])
+	uberAuthorizationCode := r.URL.Query()["code"][0]
+	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("%s uber oauth token error: %s", SetAuthCode, err.Error())
@@ -177,7 +176,7 @@ func main() {
 	mondoApiClient = &MondoApiClient{url: *mondoApiUrl}
 	router.HandleFunc("/", indexGet).Methods("GET").Name(Index)
 	router.HandleFunc("/login", loginPost).Methods("POST").Name(Login)
-	router.HandleFunc("/uber/setauthcode/{sessionId}", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
+	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
 	log.Printf("Listening on %s\n", *addr)
 	log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
