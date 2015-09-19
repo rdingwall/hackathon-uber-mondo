@@ -80,7 +80,7 @@ func loginPost(w http.ResponseWriter, r *http.Request) {
 
 	sessions[sessionId] = session
 
-	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&state=%s", UberAuthHost, *uberClientId, sessionId)
+	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&scope=history request request_receipt&client_id=%s&state=%s", UberAuthHost, *uberClientId, sessionId)
 	log.Printf("redirecting to %s", uberAuthorizeUrl)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
