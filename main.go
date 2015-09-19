@@ -30,8 +30,10 @@ type session struct {
 	uberAccessToken  string
 }
 
-var addr = flag.String("addr", ":8080", "http list addr")
-var thisUrl = flag.String("url", "", "public url e.g. http://foo:8080 (required)")
+var certFile = flag.String("certFile", "cert.pem", "SSL certificate")
+var keyFile = flag.String("keyFile", "key.pem", "SSL certificate")
+var addr = flag.String("addr", ":443", "https list addr")
+var thisUrl = flag.String("url", "", "public url e.g. https://foo (required)")
 var uberClientId = flag.String("uberClientId", "", "Uber client_id (required)")
 var uberClientSecret = flag.String("uberClientSecret", "", "Uber client_secret (required)")
 var uberApiHost = flag.String("uberApi", "https://api.uber.com/v1", "Uber API URL")
@@ -178,5 +180,5 @@ func main() {
 	router.HandleFunc("/uber/setauthcode/{sessionId}", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
 	log.Printf("Listening on %s\n", *addr)
-	log.Fatal(http.ListenAndServe(*addr, middleware(router)))
+	log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
 }
