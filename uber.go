@@ -136,7 +136,7 @@ func (c *UberApiClient) GetHistory(accessToken string) (*UberHistoryResponse, er
 }
 
 func (c *UberApiClient) GetReceipt(accessToken, requestId string) (*UberReceiptResponse, error) {
-	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/receipt", requestId, c.url)
+	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/receipt", c.url, requestId)
 	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (c *UberApiClient) GetReceipt(accessToken, requestId string) (*UberReceiptR
 }
 
 func (c *UberApiClient) GetMap(accessToken, requestId string) (*UberMapResponse, error) {
-	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/map", requestId, c.url)
+	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/map", c.url, requestId)
 	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
 	if err != nil {
 		return nil, err
