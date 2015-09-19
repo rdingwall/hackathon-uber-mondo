@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	_ "crypto/sha512"
 )
 
 const (
