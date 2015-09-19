@@ -150,6 +150,7 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 
 	if !strings.Contains(strings.ToUpper(request.Data.Description), "UBER") {
 		fmt.Printf("%s ignored transaction: %s", request.Data.Description)
+		return
 	}
 
 	vars := mux.Vars(r)
@@ -218,8 +219,14 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	uberApiClient = &UberApiClient{clientSecret: *uberClientSecret, clientId: *uberClientId}
+	uberApiClient = &UberApiClient{
+		url: *uberApiHost,
+		clientSecret: *uberClientSecret,
+		clientId: *uberClientId,
+	}
+
 	mondoApiClient = &MondoApiClient{url: *mondoApiUrl}
+
 	router.HandleFunc("/", indexGet).Methods("GET").Name(Index)
 	router.HandleFunc("/login", loginPost).Methods("POST").Name(Login)
 	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
