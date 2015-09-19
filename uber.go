@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,58 +17,60 @@ const (
 type UberApiClient struct {
 	clientSecret string
 	clientId     string
+	url          string
 }
 
 type UberTokenResponse struct {
-	AccessToken  string `json:"acces_token"`
+	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
 	ExpiresIn    uint32 `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 	Scope        string `json:"scope"`
 }
 
-type UberWebookRequest struct {
-	EventId      string          `json:"event_id"`
-	EventTime    int64           `json:"event_time"`
-	EventType    string          `json:"event_type"`
-	Meta         uberWebhookMeta `json:"meta"`
-	ResourceHref string          `json:"resource_href"`
+type UberHistoryResponse struct {
+	Offset  int64             `json:"offset"`
+	Limit   int64             `json:"limit"`
+	Count   int64             `json:"count"`
+	History []UberHistoryItem `json:"history"`
 }
 
-type uberWebhookMeta struct {
-	ResourceId   string `json:"resource_id"`
-	ResourceType string `json:"resource_type"`
-	Status       string `json:"status"`
+type UberHistoryItem struct {
+	Status      string          `json:"status"`
+	Distance    float64         `json:"distance"`
+	RequestTime int64           `json:"request_time"`
+	StartTime   int64           `json:"start_time"`
+	StartCity   UberHistoryCity `json:"start_city"`
+	EndTime     int64           `json:"end_time"`
+	RequestId   string          `json:"request_id"`
+	ProductId   string          `json:"product_id"`
 }
 
-func (c *UberApiClient) OAuthAuthorize(sessionId string, redirectUrl string) error {
-	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&state=%s&redirect_uri=%s", UberAuthHost, *uberClientId, sessionId, redirectUrl)
-	log.Printf("%s requesting %s\n", Login, uberAuthorizeUrl)
-	httpResponse, err := http.Get(uberAuthorizeUrl)
-	if err != nil {
-		log.Printf("%s uber authorize error: %s", Login, err.Error())
-		return err
-	}
-
-	defer httpResponse.Body.Close()
-	if httpResponse.StatusCode != 200 {
-		if err != nil {
-			log.Printf("%s uber authorize response error: %s", Login, err.Error())
-			return err
-		}
-
-		return errors.New(fmt.Sprintf("%s uber authorize response contained error, status=%s", Login, httpResponse.Status))
-	}
-
-	return nil
+type UberHistoryCity struct {
+	Latitude    float64 `json:"latitude"`
+	DisplayName string  `json:"display_name"`
+	Longitude   float64 `json:"longitude"`
 }
 
-func (c *UberApiClient) GetOAuthToken(authorizationCode string) (*UberTokenResponse, error) {
+type UberReceiptResponse struct {
+	RequestId     string `json:"request_id"`
+	TotalCharged  string `json:"total_charged"`
+	Distance      string `json:"distance"`
+	DistanceLabel string `json:"miles"`
+}
+
+type UberMapResponse struct {
+	RequestId string `json:"request_id"`
+	Href      string `json:"href"`
+}
+
+func (c *UberApiClient) GetOAuthToken(authorizationCode, redirectUri string) (*UberTokenResponse, error) {
 	uberTokenUrl := fmt.Sprintf("%s/oauth/token", UberAuthHost)
 	formValues := url.Values{
 		"client_secret": {c.clientSecret},
 		"client_id":     {c.clientId},
 		"grant_type":    {"authorization_code"},
+		"redirect_uri":  {"http://localhost/uber/setauthcode"},
 		"code":          {authorizationCode},
 	}
 
@@ -86,7 +89,12 @@ func (c *UberApiClient) GetOAuthToken(authorizationCode string) (*UberTokenRespo
 			return nil, err
 		}
 
-		return nil, errors.New(fmt.Sprintf("%s Uber OAuth token response contained error, status=%s", Login, httpResponse.Status))
+		body, err := ioutil.ReadAll(httpResponse.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New(string(body))
 	}
 
 	uberTokenResponse := &UberTokenResponse{}
@@ -94,10 +102,99 @@ func (c *UberApiClient) GetOAuthToken(authorizationCode string) (*UberTokenRespo
 	return uberTokenResponse, err
 }
 
-func (c *UberApiClient) GetReceipt() {
+func (c *UberApiClient) GetHistory(accessToken string) (*UberHistoryResponse, error) {
+	// Hide cancelled & giving transactions for demo...
+	uberHistoryUrl := fmt.Sprintf("%s/v1.2/history?offset=2", c.url)
+	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
+	if err != nil {
+		return nil, err
+	}
 
+	request.Header.Add(Authorization, Bearer+accessToken)
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(body))
+	}
+
+	uberHistoryResponse := &UberHistoryResponse{}
+	err = json.NewDecoder(response.Body).Decode(uberHistoryResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return uberHistoryResponse, nil
 }
 
-func (c *UberApiClient) GetMap() {
+func (c *UberApiClient) GetReceipt(accessToken, requestId string) (*UberReceiptResponse, error) {
+	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/receipt", requestId, c.url)
+	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
+	if err != nil {
+		return nil, err
+	}
 
+	request.Header.Add(Authorization, Bearer+accessToken)
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(body))
+	}
+
+	uberReceiptResponse := &UberReceiptResponse{}
+	err = json.NewDecoder(response.Body).Decode(uberReceiptResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return uberReceiptResponse, nil
+}
+
+func (c *UberApiClient) GetMap(accessToken, requestId string) (*UberMapResponse, error) {
+	uberHistoryUrl := fmt.Sprintf("%s/v1/requests/%s/map", requestId, c.url)
+	request, err := http.NewRequest("GET", uberHistoryUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Add(Authorization, Bearer+accessToken)
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(body))
+	}
+
+	uberMapResponse := &UberMapResponse{}
+	err = json.NewDecoder(response.Body).Decode(uberMapResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return uberMapResponse, nil
 }

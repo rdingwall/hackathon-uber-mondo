@@ -78,26 +78,12 @@ func loginPost(w http.ResponseWriter, r *http.Request) {
 
 	sessions[sessionId] = session
 
-	// Send oauth/authorize request to uber with our redirect URL
-	redirectUrlPath, err := router.Get(SetAuthCode).URLPath("sessionId", sessionId)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("%s error: %s", Login, err.Error())
-		return
-	}
-
-	redirectUrl := fmt.Sprintf("%s%s", *thisUrl, redirectUrlPath)
-
-	err = uberApiClient.OAuthAuthorize(sessionId, redirectUrl)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		log.Printf("%s uber authorize error: %s", Login, err.Error())
-		return
-	}
+	uberAuthorizeUrl := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&state=%s", UberAuthHost, *uberClientId, sessionId)
+	log.Printf("redirecting to %s", uberAuthorizeUrl)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	loginSuccessTemplate.Execute(w, r.Host)
+	data := struct{ UberAuthorizeUrl string }{UberAuthorizeUrl: uberAuthorizeUrl}
+	loginSuccessTemplate.Execute(w, data)
 }
 
 func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +95,7 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uberAuthorizationCode := r.URL.Query()["code"][0]
-	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode)
+	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode, r.URL.String())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("%s uber oauth token error: %s", SetAuthCode, err.Error())
@@ -117,7 +103,7 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.uberAccessToken = uberTokenResponse.AccessToken
-	log.Printf("%s assigned session id=% Uber access_token=%s\n", SetAuthCode, sessionId, uberTokenResponse.AccessToken)
+	log.Printf("%s assigned session id=%s Uber access_token=%s\n", SetAuthCode, sessionId, uberTokenResponse.AccessToken)
 
 	// Register Mondo webhook
 	mondoWebhookPath, err := router.Get(MondoWebhook).URLPath("sessionId", sessionId)
@@ -127,8 +113,8 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("%s registering mondo webhook url=%s", SetAuthCode, mondoWebhookPath)
-	mondoWebhookUrl := fmt.Sprintf("%%", *thisUrl, mondoWebhookPath)
-	mondoWebhookResponse, err := mondoApiClient.RegisterWebHook(session.uberAccessToken, session.mondoAccountId, mondoWebhookUrl)
+	mondoWebhookUrl := fmt.Sprintf("%s%s", *thisUrl, mondoWebhookPath)
+	mondoWebhookResponse, err := mondoApiClient.RegisterWebHook(session.mondoAccessToken, session.mondoAccountId, mondoWebhookUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("%s register mondo webhook error: %s", SetAuthCode, err.Error())
@@ -153,6 +139,53 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%s ignored transaction: %s", request.Data.Description)
 	}
 
+	vars := mux.Vars(r)
+	sessionId := vars["sessionId"]
+	session, exists := sessions[sessionId]
+	if !exists {
+		http.Error(w, fmt.Sprintf("No such session %s", sessionId), http.StatusNotFound)
+		return
+	}
+
+	uberHistoryResponse, err := uberApiClient.GetHistory(session.uberAccessToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s get history error: %s", SetAuthCode, err.Error())
+		return
+	}
+
+	uberHistoryItem := uberHistoryResponse.History[0]
+	requestId := uberHistoryItem.RequestId
+	uberReceiptResponse, err := uberApiClient.GetReceipt(session.uberAccessToken, requestId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s get receipt error: %s", SetAuthCode, err.Error())
+		return
+	}
+
+	uberMapResponse, err := uberApiClient.GetMap(session.uberAccessToken, requestId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s get map error: %s", SetAuthCode, err.Error())
+		return
+	}
+
+	// Todo: look up Uber product types
+	feedItemTitle := fmt.Sprintf("%s UberX %s", uberReceiptResponse.TotalCharged, uberHistoryItem.StartCity.DisplayName)
+
+	err = mondoApiClient.CreateFeedItem(
+		session.mondoAccessToken,
+		session.mondoAccountId,
+		"image",
+		"Uber Receipt",
+		uberMapResponse.Href,
+		feedItemTitle)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s create feed item error: %s", SetAuthCode, err.Error())
+		return
+	}
 }
 
 func middleware(h http.Handler) http.Handler {
@@ -179,5 +212,9 @@ func main() {
 	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
 	log.Printf("Listening on %s\n", *addr)
-	log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
+	if strings.Contains(*addr, "443") {
+		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
+	} else {
+		log.Fatal(http.ListenAndServe(*addr, middleware(router)))
+	}
 }

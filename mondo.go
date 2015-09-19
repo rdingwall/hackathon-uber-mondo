@@ -1,12 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 const (
@@ -52,22 +54,22 @@ type WebhookData struct {
 
 var httpClient = &http.Client{}
 
-func (c *MondoApiClient) RegisterWebHook(accessToken string, accountId string, url string) (*RegisterWebhookResponse, error) {
-	webhookRequest := &RegisterWebhookRequest{AccountId: accountId, Url: url}
-	buffer := &bytes.Buffer{}
-	err := json.NewEncoder(buffer).Encode(webhookRequest)
-	if err != nil {
-		return nil, err
-	}
+func (c *MondoApiClient) RegisterWebHook(accessToken, accountId, webhookUrl string) (*RegisterWebhookResponse, error) {
+	log.Printf("Registering webhook for accountId=%s accessToken=%s url=%s\n", accountId, accessToken, webhookUrl)
 
 	webhooksUrl := fmt.Sprintf("%s/webhooks", c.url)
-	request, err := http.NewRequest("POST", webhooksUrl, buffer)
+	formValues := url.Values{
+		"account_id": {accountId},
+		"url":        {webhookUrl},
+	}
+
+	request, err := http.NewRequest("POST", webhooksUrl, strings.NewReader(formValues.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
 	request.Header.Add(Authorization, Bearer+accessToken)
-	request.Header.Add(ContentType, ApplicationJson)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	response, err := httpClient.Do(request)
 	if err != nil {
@@ -90,4 +92,41 @@ func (c *MondoApiClient) RegisterWebHook(accessToken string, accountId string, u
 	}
 
 	return webhookResponse, nil
+}
+
+func (c *MondoApiClient) CreateFeedItem(accessToken, accountId, itemType, title, imageUrl, body string) error {
+	log.Printf("Creating feed item for accountId=%s accessToken=%s type=%s title=%s imageUrl=%s body=%s\n", accountId, accessToken, itemType, title, imageUrl, body)
+
+	feedUrl := fmt.Sprintf("%s/feed", c.url)
+	formValues := url.Values{
+		"account_id": {accountId},
+		"type":       {itemType},
+		"title":      {title},
+		"image_url":  {imageUrl},
+		"body":       {body},
+	}
+
+	request, err := http.NewRequest("POST", feedUrl, strings.NewReader(formValues.Encode()))
+	if err != nil {
+		return err
+	}
+
+	request.Header.Add(Authorization, Bearer+accessToken)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != 200 {
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(string(body))
+	}
+
+	return err
 }
