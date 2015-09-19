@@ -186,13 +186,13 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := coordinate{
-		latitude:  uberHistoryItem.StartCity.Latitude,
-		longitude: uberHistoryItem.StartCity.Longitude,
+		Latitude:  uberHistoryItem.StartCity.Latitude,
+		Longitude: uberHistoryItem.StartCity.Longitude,
 	}
 
 	end := coordinate{
-		latitude:  uberRequestResponse.Location.Latitude,
-		longitude: uberRequestResponse.Location.Longitude,
+		Latitude:  uberRequestResponse.Location.Latitude,
+		Longitude: uberRequestResponse.Location.Longitude,
 	}
 
 	feedItemImageUrl := googleMapsUrl(start, end, *googleMapsApiKey)
