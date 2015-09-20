@@ -17,6 +17,7 @@ const (
 	// Route names
 	Index        = "/"
 	Login        = "/login"
+	Logout       = "/logout"
 	SetAuthCode  = "/uber/setauthcode"
 	ReceiptReady = "/uber/webooks/requests.receipt_ready"
 	UberWebhook  = "/uber/webhook"
@@ -138,7 +139,8 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s successfully registered mondo webhook id=%s", SetAuthCode, mondoWebhookResponse.Webhook.Id)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	loginSuccessTemplate.Execute(w, r)
+	data := struct{ SessionId string }{SessionId: sessionId}
+	loginSuccessTemplate.Execute(w, data)
 }
 
 func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
@@ -216,6 +218,17 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func logoutPost(w http.ResponseWriter, r *http.Request) {
+	sessionId := r.FormValue("sessionId")
+	session, exists := sessions[sessionId]
+	if !exists {
+		http.Error(w, fmt.Sprintf("No such session %s", sessionId), http.StatusNotFound)
+		return
+	}
+
+	mondoApiClient.UnregisterWebHook(session.mondoAccessToken, session.mondoWebhookId)
+}
+
 func middleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s\n", r.Method, r.URL)
@@ -243,6 +256,7 @@ func main() {
 
 	router.HandleFunc("/", indexGet).Methods("GET").Name(Index)
 	router.HandleFunc("/login", loginPost).Methods("POST").Name(Login)
+	router.HandleFunc("/logout", logoutPost).Methods("POST").Name(Logout)
 	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))

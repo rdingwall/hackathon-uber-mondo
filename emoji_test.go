@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"log"
+	"testing"
 )
 
 func TestRandomCarEmoji(t *testing.T) {

@@ -94,6 +94,35 @@ func (c *MondoApiClient) RegisterWebHook(accessToken, accountId, webhookUrl stri
 	return webhookResponse, nil
 }
 
+func (c *MondoApiClient) UnregisterWebHook(accessToken, webhookId string) error {
+	log.Printf("Unregistering webhook accessToken=%s webhookId=%s\n", accessToken, webhookId)
+
+	webhooksUrl := fmt.Sprintf("%s/webhooks/%s", c.url, webhookId)
+
+	request, err := http.NewRequest("DELETE", webhooksUrl, nil)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Add(Authorization, Bearer+accessToken)
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != 200 {
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(string(body))
+	}
+
+	return nil
+}
+
 func (c *MondoApiClient) CreateFeedItem(accessToken, accountId, itemType, title, imageUrl, body string) error {
 	log.Printf("Creating feed item for accountId=%s accessToken=%s type=%s title=%s imageUrl=%s body=%s\n", accountId, accessToken, itemType, title, imageUrl, body)
 
