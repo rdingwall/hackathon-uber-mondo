@@ -34,8 +34,10 @@ type session struct {
 var googleMapsApiKey = flag.String("gMapsApiKey", "", "Google Maps API key (required)")
 var certFile = flag.String("certFile", "cert.pem", "SSL certificate")
 var keyFile = flag.String("keyFile", "key.pem", "SSL certificate")
-var addr = flag.String("addr", ":443", "https list addr")
-var thisUrl = flag.String("url", "", "public url e.g. https://foo (required)")
+var httpsAddr = flag.String("https", ":443", "HTTPS address to bind on")
+var httpAddr = flag.String("http", ":80", "HTTP address to bind on")
+var httpsUrl = flag.String("httpsUrl", "", "public HTTPS URL for Uber redirect e.g. https://foo (required)")
+var httpUrl = flag.String("httpUrl", "", "public HTTP URL for Mondo webhook e.g. http://foo (required)")
 var uberClientId = flag.String("uberClientId", "", "Uber client_id (required)")
 var uberClientSecret = flag.String("uberClientSecret", "", "Uber client_secret (required)")
 var uberApiHost = flag.String("uberApi", "https://api.uber.com", "Uber API URL (no trailing slash)")
@@ -103,7 +105,7 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s error: %s", SetAuthCode, err.Error())
 		return
 	}
-	redirectUri := fmt.Sprintf("%s%s", *thisUrl, redirectUriPath)
+	redirectUri := fmt.Sprintf("%s%s", *httpsUrl, redirectUriPath)
 
 	uberAuthorizationCode := r.URL.Query()["code"][0]
 	uberTokenResponse, err := uberApiClient.GetOAuthToken(uberAuthorizationCode, redirectUri)
@@ -123,7 +125,7 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s error: %s", SetAuthCode, err.Error())
 		return
 	}
-	mondoWebhookUrl := fmt.Sprintf("%s%s", *thisUrl, mondoWebhookPath)
+	mondoWebhookUrl := fmt.Sprintf("%s%s", *httpUrl, mondoWebhookPath)
 	log.Printf("%s registering mondo webhook url=%s", SetAuthCode, mondoWebhookUrl)
 	mondoWebhookResponse, err := mondoApiClient.RegisterWebHook(session.mondoAccessToken, session.mondoAccountId, mondoWebhookUrl)
 	if err != nil {
@@ -227,7 +229,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	if *uberClientId == "" || *uberClientSecret == "" || *thisUrl == "" || *googleMapsApiKey == "" {
+	if *uberClientId == "" || *uberClientSecret == "" || *httpsUrl == "" || *httpUrl == "" || *googleMapsApiKey == "" {
 		flag.PrintDefaults()
 		return
 	}
@@ -244,10 +246,16 @@ func main() {
 	router.HandleFunc("/uber/setauthcode", uberSetAuthCodeGet).Methods("GET").Name(SetAuthCode)
 	router.HandleFunc("/mondo/webhook/{sessionId}", mondoWebhookPost).Methods("POST").Name(MondoWebhook)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
-	log.Printf("Listening on %s\n", *addr)
-	if strings.Contains(*addr, "443") {
-		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, middleware(router)))
+
+	go func() {
+		log.Printf("Listening on %s\n", *httpAddr)
+		log.Fatal(http.ListenAndServe(*httpAddr, middleware(router)))
+	}()
+
+	log.Printf("Listening on %s\n", *httpsAddr)
+	if strings.Contains(*httpsAddr, "443") {
+		log.Fatal(http.ListenAndServeTLS(*httpsAddr, *certFile, *keyFile, middleware(router)))
 	} else {
-		log.Fatal(http.ListenAndServe(*addr, middleware(router)))
+		log.Fatal(http.ListenAndServe(*httpsAddr, middleware(router)))
 	}
 }
