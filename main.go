@@ -152,7 +152,7 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !strings.Contains(strings.ToUpper(request.Data.Description), "UBER") {
-		fmt.Printf("%s ignored transaction: %s", request.Data.Description)
+		fmt.Printf("%s ignored transaction: %s", MondoWebhook, request.Data.Description)
 		return
 	}
 
@@ -205,7 +205,7 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 		session.mondoAccessToken,
 		session.mondoAccountId,
 		"image",
-		"Uber Receipt 🚘",
+		fmt.Sprintf("Uber Receipt %s", randomCarEmoji()),
 		feedItemImageUrl,
 		feedItemTitle)
 
