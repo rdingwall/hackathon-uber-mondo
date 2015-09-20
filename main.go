@@ -222,7 +222,7 @@ func mondoWebhookPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func logoutPost(w http.ResponseWriter, r *http.Request) {
-	sessionId := r.FormValue("sessionId")
+	sessionId := r.FormValue("session-id")
 	session, exists := sessions[sessionId]
 	if !exists {
 		http.Error(w, fmt.Sprintf("No such session %s", sessionId), http.StatusNotFound)
