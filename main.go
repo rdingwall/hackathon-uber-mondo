@@ -226,7 +226,16 @@ func logoutPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mondoApiClient.UnregisterWebHook(session.mondoAccessToken, session.mondoWebhookId)
+	err := mondoApiClient.UnregisterWebHook(session.mondoAccessToken, session.mondoWebhookId)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("%s create feed item error: %s", Logout, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	indexTemplate.Execute(w, r.Host)
 }
 
 func middleware(h http.Handler) http.Handler {
