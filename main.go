@@ -139,7 +139,10 @@ func uberSetAuthCodeGet(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s successfully registered mondo webhook id=%s", SetAuthCode, mondoWebhookResponse.Webhook.Id)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	data := struct{ SessionId string }{SessionId: sessionId}
+	data := struct {
+		SessionId string
+		WebhookId string
+	}{SessionId: sessionId, WebhookId: session.mondoWebhookId}
 	loginSuccessTemplate.Execute(w, data)
 }
 
